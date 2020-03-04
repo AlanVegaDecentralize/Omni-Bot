@@ -8,7 +8,7 @@ const omniKEY = process.env.OMNI_KEY;
 async function makeRequest() {
 
     const config = {
-        method: 'GET',
+        method: 'POST',
         url: `${omniURL}/request-auth-token`,
         apiKey: `${omniKEY}`
     };

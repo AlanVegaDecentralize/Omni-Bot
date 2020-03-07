@@ -19,9 +19,6 @@ const
 //     })
 //     .catch(console.error);
 
-async function twitterBearer() {
-    const 
-}
 
 
 async function boom() {

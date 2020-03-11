@@ -1,18 +1,22 @@
-require('dotenv').config();
+require('dotenv').config('.env.twitter');
 
+const path = require('path');
 const { Autohook } = require('twitter-autohook');
 const util = require('util');
+const axios = require('axios');
 const request = require('request');
 
-
 const post = util.promisify(request.post);
+// const PORT = 3000;
 
 const oAuthConfig = {
     token: process.env.TWITTER_ACCESS_TOKEN,
     token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
     consumer_key: process.env.TWITTER_CONSUMER_KEY,
-    consumer_secret: process.env.TWITTER_CONSUMER_KEY_SECRET
+    consumer_secret: process.env.TWITTER_CONSUMER_KEY_SECRET,
+    env: process.env.TWITTER_WEBHOOK_ENV
 };
+
 
 async function sayHi(event) {
     if (!event.direct_message_events) {
@@ -20,6 +24,7 @@ async function sayHi(event) {
     }
   
     const message = event.direct_message_events.shift();
+    const sender = message.message_create.sender_id;
   
     if (typeof message === 'undefined' || typeof message.message_create === 'undefined') {
       return;
@@ -37,6 +42,7 @@ async function sayHi(event) {
   
     const requestConfig = {
       url: 'https://api.twitter.com/1.1/direct_messages/events/new.json',
+      authorization: 'oAuth',
       oauth: oAuthConfig,
       json: {
         event: {
@@ -52,8 +58,12 @@ async function sayHi(event) {
         },
       },
     };
-    await post(requestConfig);
-  }
+    await post(requestConfig);  
+};
+
+
+
+
 
 async function markAsRead(messageId, senderId, auth) {
     const requestConfig = { 
@@ -62,9 +72,10 @@ async function markAsRead(messageId, senderId, auth) {
             last_read_event_id: messageId, 
             recipient_id: senderId,
         },
-        oauth: oAuthConfig,
+        authorization: 'oAuth',
+        oauth: auth,
     };
-    await post(requestConfig);
+    await post(requestConfig)
 };
 
 async function indicateTyping(senderId, auth) {
@@ -72,10 +83,11 @@ async function indicateTyping(senderId, auth) {
         url: 'https://api.twitter.com/1.1/direct_messages/indicate_typing.json',
         form: {
             reicipient_id: senderId,
-        }, 
-        oauth: oAuthConfig,
+        },
+        authorization: 'oAuth', 
+        oauth: auth,
     };
-    await post(requestConfig);
+    await post(requestConfig)
 };
 
 (async () => {
@@ -89,11 +101,12 @@ async function indicateTyping(senderId, auth) {
         await webhook.subscribe({oauth_token:process.env.TWITTER_ACCESS_TOKEN, oauth_token_secret:process.env.TWITTER_ACCESS_TOKEN_SECRET});
         
         // Listens to incoming activity
-        webhook.on('event', event => console.log('Something happened:', event));
+        webhook.on('event', event => console.log('Something happened:', JSON.stringify(event, null, 2)));
         
-        webhook.on('event', async event => {
+        webhook.on('event', async (event) => {
             if (event.direct_message_events) {
-                await sayHi(event);
+              console.log('sayHi!')
+              await sayHi(event);
             }
         });
     } catch(e) {
@@ -101,3 +114,11 @@ async function indicateTyping(senderId, auth) {
         process.exit(1);
     }
 })();
+
+// curl --request POST 
+// --url https://api.twitter.com/1.1/direct_messages/events/new.json 
+// --header 'authorization: OAuth oauth_consumer_key="YOUR_CONSUMER_KEY", oauth_nonce="AUTO_GENERATED_NONCE", oauth_signature="AUTO_GENERATED_SIGNATURE", oauth_signature_method="HMAC-SHA1", oauth_timestamp="AUTO_GENERATED_TIMESTAMP", oauth_token="USERS_ACCESS_TOKEN", oauth_version="1.0"' 
+// --header 'content-type: application/json' 
+// --data '{"event": {"type": "message_create", "message_create": {"target": {"recipient_id": "RECIPIENT_USER_ID"}, "message_data": {"text": "Hello World!"}}}}'
+
+// twurl -A 'Content-type: application/json' -X POST /1.1/direct_messages/events/new.json -d '{"event": {"type": "message_create", "message_create": {"target": {"recipient_id": "RECIPIENT_USER_ID"}, "message_data": {"text": "Hello World!"}}}}'

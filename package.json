@@ -36,6 +36,10 @@
     "request": "^2.88.2",
     "twitter-autohook": "^1.4.2",
     "twitter-lite": "^0.9.4",
-    "util": "^0.12.2"
+    "util": "^0.12.2",
+    "xregexp": "^4.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.2"
   }
 }

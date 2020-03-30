@@ -1,14 +1,9 @@
 require('dotenv').config();
 
 const twit = require('./twit');
-const advent = require('./adventure.js')
+const advent = require('./adventure')
+const auto = require('./auto')
 const { Autohook } = require('twitter-autohook');
-const util = require('util');
-const request = require('request');
-
-
-const post = util.promisify(request.post);
-// const PORT = 3000;
 
 // const {
 //     TWITTER_CONSUMER_KEY,
@@ -28,6 +23,7 @@ const oAuthConfig = {
     env: process.env.TWITTER_WEBHOOK_ENV
 };
 
+
 (async () => {
   try{
       const webhook = new Autohook();
@@ -35,24 +31,44 @@ const oAuthConfig = {
       await webhook.removeWebhooks();
       // Starts a server and adds a new webhook
       await webhook.start();
-      // Subscribes to a omni activity
+      // Subscribes to omni.fyi activity
       await webhook.subscribe({oauth_token:process.env.TWITTER_ACCESS_TOKEN, oauth_token_secret:process.env.TWITTER_ACCESS_TOKEN_SECRET});
-      
-      // Listens to incoming activity
-      webhook.on('event', event => console.log('Something happened:', JSON.stringify(event, null, 2)));
-      
-      webhook.on('event', async (event) => {
-        if (event.)
-        
 
-        if (event.direct_message_events) {
-          console.log('sayHi!')
-          await sayHi(event);
+      // Listens to incoming activity
+
+      webhook.on('event', (event) => {
+        console.log('New event: ', event)});
+
+      webhook.on('event', (event) => {
+
+        if (event.follow_events[0].type == 'follow') {
+          let twitUser = event.follow_events[0].source.screen_name
+          let id = event.follow_events[0].source.id
+          let welMsg = `Welcome to Omni ${twitUser}!`
+          async () => {
+            await twit.follow(twitUser)
+            await twit.dm(id, twit, welMsg)
+            await advent.postWallet(`${twitUser}`)
+          }
         };
-      })
+        // (event.follow_events[0].type == 'follow') ? twit.follow(event.follow_events[0].source.screen_name): console.log('Failed to follow back: ', event.follow_events[0].source.screen_name )
+        // (event.follow_events[0].type == 'follow') ? twit.dm(event.follow_events[0].source.screen_name)
+        // (event)
+        // (event.tweet_create_events[0].)
+        // // (twitObj.tweet_create_events == )
+        if (event.follow_events[0].type == 'unfollow') {
+          let twitUser = event.follow_events[0].source.screen_name
+          let id = event.follow_events[0].source.id
+
+          await twit.unfollow(twitUser)
+          
+        } 
+      });
   } catch(e) {
       console.error(e);
-      process.exit(1);
+      process.exit(e);
   }
 })();
+
+
 

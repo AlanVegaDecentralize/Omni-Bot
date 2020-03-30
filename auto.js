@@ -1,40 +1,43 @@
 const twit = require('./twit');
 const advent = require('./adventure');
 
-/*ON USER FOLLOW:
- * 1. follow back user 
- * 2. create user wallet
- * 3. Pm user instructions on how to use the bot
- */
+
 const confirmed = ['200 OK']
-const failed = ['403 Forbidden']
+const forbidden = ['403 Forbidden']
+const failed = [400]
 
 // https://etherscan.io/address/
 // https://etherscan.io/tx/
 
-
 // When user follows Omni, omni follows back, creates wallet and DM's the user
-async function onFollow(userId) {
-    const welcomeMsg = `Welcome to Omni ${userId}! `
-    const walletRes = () = await advent.getWallet(userId)
-    const followProcess = () = await twit.follow(userId)
-    
-    if ( walletRes == failed ) {
-        await advent.postWallet(userId)
-    };
-    
-    if ( followProcess == confirmed ){ 
-        await twit.dm(welcomeMsg, userId)
-    };
+async function onFollow(userId, twit_screen_name) {
+    const welcomeMsg = `Welcome to Omni ${twit_screen_name}!`;
+    let info = {};
+    await advent.getWallet(twit_screen_name)
+        .then((result) => {(result.status == 200) ? 
+        console.log(result) : 
+        advent.postWallet(twit_screen_name).then((result) => info.push({result}))
+    });
+
+    await twit.follow(userId)
+        .then((result) => {(result.status == confirmed) ?
+        twit.dm(userId, twit_screen_name, welcomeMsg).then((result) => info.push({result})) :
+        console.log(`Follow for ${twit_screen_name} failed`)
+    });
+
+    return info
 };
 
-// User Dm's bot 'wallet' to request wallet
-async function onDMevent(contents, userId) {
-    const msg = contents.toLowerCase()
-    const wallet = () = advent.getWallet(userId.publicKey)
+// User Dm's bot 'wallet' to request wallet (twitId = serialized account number)
+async function onDMevent(twitId, twit_screen_name, contents) {
+    const msg = contents.toLowerCase();
     const response = `Here's your wallet: https://etherscan.io/address/${wallet}`
 
-    if (msg == "wallet") {
-        await twit.dm(response, userId)
-    }
+    const wallet = () => advent.getWallet(twit_screen_name.publicKey)
+        .then()
+};
+
+module.exports = {
+    onFollow,
+    onDMevent
 };

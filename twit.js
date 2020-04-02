@@ -41,9 +41,9 @@ async function _auth(client) {
 };
 
 // Direct Message 
-async function dm(userId, target_screen_name = null, content) {
+async function dm(userId, content, target_screen_name = null) {
     let status;
-    const response = await client.post('direct_messages/events/new', {
+    await client.post('direct_messages/events/new', {
         event: {
             type: 'message_create',
             message_create: {
@@ -56,30 +56,31 @@ async function dm(userId, target_screen_name = null, content) {
             },
         },
     })
-        .then( (res) => { status = {status: res._headers.status, data: res.message_create} })
-        .catch( (err) => { status = {status: err._headers.status, data: res.message_create} });
-    
+        .then( (res) => { status = {status: res._headers.status, res: res} })
+        .catch( (err) => { console.log(err) });
+
     return status
 };
 
 // Follow target_screen_name (Twitter handle) 
 async function follow(target_screen_name) {
-    let status;
-    const response = await client.post('friendships/create', {
+
+    let content;
+    await client.post('friendships/create', {
         screen_name: target_screen_name})
-        .then((res) => { status = res._headers.status })
-        .catch((res) => { status = res._headers.status});
-    console.log(`${target_screen_name} follow process: ` + status);
-    return status
+        .then((res) => {return content = res._headers.status })
+        .catch((err) => {return content = err });
+    // console.log(`${target_screen_name} follow process: ` + status);
+    return content
 };
 
 // Unfollows target_screen_name (Twitter handle) @example
 async function unfollow(target_screen_name) {
-    let status;
-    const response = await client.post('friendships/destroy', {
+    let content;
+    await client.post('friendships/destroy', {
         screen_name: target_screen_name })
-    .then((res) => { status = res._headers.status })
-    .catch((err) => { status = err._headers.status});
-    console.log(`Unfollowing ${target_screen_name}: ` + status);
-    return status
+    .then((res) => { content = res._headers.status })
+    .catch((err) => { content = err._headers.status});
+    console.log(`Unfollowing ${target_screen_name}: ` + content);
+    return content
 };

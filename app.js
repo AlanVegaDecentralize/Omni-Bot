@@ -5,15 +5,6 @@ const advent = require('./adventure')
 const auto = require('./auto')
 const { Autohook } = require('twitter-autohook');
 
-// const {
-//     TWITTER_CONSUMER_KEY,
-//     TWITTER_CONSUMER_SECRET,
-//     TWITTER_ACCESS_TOKEN,
-//     TWITTER_ACCESS_TOKEN_SECRET,
-//     OMNI_URL,
-//     OMNI_KEY,
-//     OMNI_BEARER
-// } = process.env
 
 const oAuthConfig = {
     token: process.env.TWITTER_ACCESS_TOKEN,
@@ -27,7 +18,7 @@ const oAuthConfig = {
 (async () => {
 	try{
 		const webhook = new Autohook();
-			// Removes existing webhooks
+		// Removes existing webhooks
 		await webhook.removeWebhooks();
 		// Starts a server and adds a new webhook
 		await webhook.start();
@@ -36,8 +27,10 @@ const oAuthConfig = {
 
 		// Listens to incoming activity
 		// webhook.on('event', (event) => {
-		// 	console.log('New event: ', event.tweet_create_events[0].in_reply_to_screen_name);
-		// })
+		// 	if (event.direct_message_events && (event.direct_message_events[0].type == 'message_create')){
+		// 		let twitId = event.direct_message_events[0].message_create.sender_id
+		// 		console.log('New event: ',event.users[twitId].screen_name);
+		// }});
 	
 		webhook.on('event', async(event) => {
 			
@@ -61,40 +54,58 @@ const oAuthConfig = {
 				.catch((err) => console.log(err))
 			};
 
-				if (event.tweet_create_events[0] && (event.tweet_create_events[0].in_reply_to_screen_name == 'FyiOmni')) {
-					
-					// let twitUser = event.tweet_create_events[0].user.screen_name
-					let tweet = event.tweet_create_events[0].text
-					// console.log('TwitUser: ', twitUser, 'TwitId: ', twitId, 'Tweet: ', tweet)
-					try{
-						let txTweet = auto.txInfoExtract(tweet)
-						if(txTweet.amount && txTweet.users && txTweet.ticker){
-							console.log(txTweet.amount[0], txTweet.users[0], txTweet.ticker)
-							let i;
-							for ( i = 0; i < txTweet.users.length; i++ ) {
-								// Will not send tokens to twitter users who don't follow Omni 
-								// ~Might remove to allow more inclusivity~
-								// await advent.getWallet(txTweet.users[i]).then(
-								// 	(results) => {
-								// 	if (results.status == 200) {
-								// 		console.log('We here but not here');
-								// 		advent.sendToken(txTweet.ticker, txTweet.amount[0], txTweet.users[0])
-								// 		.then((result) => {console.log(result)})
-								// 		.catch((err) => {console.error(err)});
-								// 	};
-								// });
-							}
+			// Transaction tweet (REQUIREMENTS: 'send 123123 BERNIE @FyiOMNI @Recipient_Handle')
+			if (event.tweet_create_events && (event.tweet_create_events[0].in_reply_to_screen_name == 'FyiOmni')) {
+				
+				// let twitUser = event.tweet_create_events[0].user.screen_name
+				let tweet = event.tweet_create_events[0].text
+				// console.log('TwitUser: ', twitUser, 'TwitId: ', twitId, 'Tweet: ', tweet)
+				try{
+					let txTweet = auto.txInfoExtract(tweet)
+					if(txTweet.amount && txTweet.users && txTweet.ticker){
+						console.log(txTweet.amount[0], txTweet.users[0], txTweet.ticker)
+						let i;
+						for ( i = 0; i < txTweet.users.length; i++ ) {
+							// Will not send tokens to twitter users who don't follow Omni 
+							// ~Might remove to allow more inclusivity~
+							// await advent.getWallet(txTweet.users[i]).then(
+							// 	(results) => {
+							// 	if (results.status == 200) {
+							// 		console.log('We here but not here');
+							// 		advent.sendToken(txTweet.ticker, txTweet.amount[0], txTweet.users[0])
+							// 		.then((result) => {console.log(result)})
+							// 		.catch((err) => {console.error(err)});
+							// 	};
+							// });
 						}
-					} catch(e) {
-						console.log(e)
 					}
+				} catch(e) {
+					console.log(e)
 				};
+			};
+			// Handles wallet request from follower (User dm's Omni bot any message with 'wallet' keyword)
+			if (event.direct_message_events && (event.direct_message_events[0].type == 'message_create')) {
+				const walletReg = /wallet/gi
+				let tweet = event.direct_message_events[0].message_create.message_data.text 
+				let twitId = event.direct_message_events[0].message_create.sender_id
+				if (tweet.match(walletReg)) {
+					const msg = tweet.match(walletReg)
+					const key = msg[0].toLowerCase()
+					let twitUser = event.users[twitId].screen_name
+					
+					await auto.walletRequest(twitUser, twitId)
+					.then((result) => {console.log(result)})
+					.catch((err) => {console.log(err)});
+				} else {
+					console.log('Not wallet request')
+				};
+			};
 		});
 	} catch(e) {
 		console.error(e);
 		process.exit(e);
 	}
-	})();
+})();
 
 
 

@@ -1,7 +1,6 @@
 const twit = require('./twit');
 const advent = require('./adventure');
 
-
 const confirmed = ['200 OK']
 const forbidden = ['403 Forbidden']
 const failed = [400]
@@ -9,33 +8,56 @@ const failed = [400]
 // https://etherscan.io/address/
 // https://etherscan.io/tx/
 
+module.exports = {
+    onFollow,
+	walletRequest,
+	txInfoExtract
+};
+
 // When user follows Omni, omni follows back, creates wallet and DM's the user
-async function onFollow(userId, twit_screen_name) {
-	let wallet = null
-	const welcomeMsg = `Welcome to Omni ${twit_screen_name}!\nHere's your wallet: ${wallet}`;
-    await advent.getWallet(twit_screen_name)
+async function onFollow(userId, twitUser) {
+	// Prevents the bot from following iteself ['403']
+	if (userId == '1234326202699005954') {
+		return
+	}
+	let wallet;
+	// Checks if new followers has a omni wallet 
+	// If they do logs wallet; if not creates wallet
+    await advent.getWallet(twitUser)
 		.then((result) => { 
 			(result.status == 200) ? 
-        	console.log(result):advent.postWallet(twit_screen_name).then((result) => {console.log(`${twit_screen_name} wallet: `, result)})
-	});
-
-    await twit.follow(twit_screen_name)
+			console.log(result):
+			await advent.postWallet(twitUser)
+			.then((result) => console.log(`${twitUser} wallet: `, result));
+			wallet = result.data.publicKey;
+		});
+	// Follows back users and sens welcome msg with omni wallet info
+    await twit.follow(twitUser)
         .then((result) => {
-			twit.dm(userId, welcomeMsg)
-            .then((result) => {console.log(`${twit_screen_name}'s welcome message: `, result.status)})
+			let welcomeMsg = `Welcome to Omni ${twitUser}!\nYour generated Ethereum wallet: ${wallet}`;
+			await twit.dm(userId, welcomeMsg)
+            .then((result) => console.log(`${twitUser}'s welcome message: `, result.status))
             .catch((err) => console.log(err))
     });
 };
 
 // User Dm's bot 'wallet' to request wallet (twitId = serialized account number)
-async function onDMevent(twitId, twit_screen_name, contents) {
-    const msg = contents.toLowerCase();
-    const response = `Here's your wallet: https://etherscan.io/address/${wallet}`
-
-    await advent.getWallet(twit_screen_name)
-        .then()
+async function walletRequest(twitUser, twitId) {
+    let response
+	let wallet
+	console.log(`wallet request from: ${twitUser}`)
+	// Grabs wallet 
+	await advent.getWallet(twitUser)
+	.then((result) => {
+		wallet = result.data.publicKey;
+		response = `Here's your wallet: https://etherscan.io/address/${wallet}`
+		twit.dm(twitId, response)
+		.then((result) => {console.log(result.status)})
+		.catch((err) => {console.log(err)})})
+	.catch((err) => console.log(err))
 };
 
+// Extracts transaction info from tweet (Bot must be mentioned i.e. @FyiOmni)
 function txInfoExtract(tweet) {
 	let output = {}
 	// Token List 
@@ -69,10 +91,4 @@ function txInfoExtract(tweet) {
 		ticker: ticker
 	}
 	return output
-};
-
-module.exports = {
-    onFollow,
-	onDMevent,
-	txInfoExtract
 };

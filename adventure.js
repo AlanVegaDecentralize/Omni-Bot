@@ -17,21 +17,22 @@ module.exports = {
 const bearConfig = { headers : { 'Authorization': 'Bearer ' + `${ADVENTURE_BEARER}` } };
 const url = `${ADVENTURE_URL}`
 
-// Might need idType in the parameter (needs testing)
+// Might need senderId & idType in the parameter (needs testing)
 async function sendToken(ticker, amount, userId) {
     let data = {}
     
-    await axios.post(`${url}/send-token`, {
+    await axios.post(`${url}/send-token`, { params: {
             "ticker": ticker,
             "amount": amount,
             "userId": userId
-    }, {'Authorization': 'Bearer ' + `${ADVENTURE_BEARER}`,})
+    }, headers: {'Authorization': 'Bearer ' + ADVENTURE_BEARER,}})
     .then( function(response) { return data = {status: response.status, data: response.data}})
-    .catch( function(error) { return error.status});
+    .catch( function(error) { console.error(error)});
 
     return data
 };
 
+// Calls for eth address 
 async function getWallet(userId) {
     const URL = `${url}/wallet`
     const data = {params: {userId: userId}, headers: {'Authorization': 'Bearer ' + ADVENTURE_BEARER}}

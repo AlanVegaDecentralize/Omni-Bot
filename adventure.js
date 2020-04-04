@@ -19,17 +19,17 @@ const url = `${ADVENTURE_URL}`
 
 // Might need senderId & idType in the parameter (needs testing)
 async function sendToken(ticker, amount, userId) {
-    let data = {}
+    let output = {}
     
-    await axios.post(`${url}/send-token`, { params: {
-            "ticker": ticker,
-            "amount": amount,
-            "userId": userId
-    }, headers: {'Authorization': 'Bearer ' + ADVENTURE_BEARER,}})
-    .then( function(response) { return data = {status: response.status, data: response.data}})
-    .catch( function(error) { console.error(error)});
+    await axios.post(`${url}/send-token`, {
+        "ticker": ticker,
+        "amount": amount,
+        "userId": userId
+    }, bearConfig)
+    .then( function(response) { return output = {status: response.status, data: response.data} })
+    .catch( function(error) { return output = { status: error.status }});
 
-    return data
+    return output
 };
 
 // Calls for eth address 
@@ -39,8 +39,8 @@ async function getWallet(userId) {
     let wallet = {}
     
     await axios.get(URL, data)
-    .then( function(response) {return wallet = {status: response.status, data : response.data}})
-    .catch( function(error) { return error.status });
+    .then( function(response) { return wallet = {status: response.status, data : response.data, wallet: response.data.publicKey }})
+    .catch( function(error) { return wallet = { status: error.response.status}} );
     
     return wallet
 };
@@ -73,6 +73,3 @@ function _getTest() {
             console.log(response.statusText);})
         .catch(function (error) {console.log(error);})
 };
-
-
-

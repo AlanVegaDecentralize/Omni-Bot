@@ -40,6 +40,23 @@ async function _auth(client) {
     }    
 };
 
+// 15 rate limit/15 Mins.
+async function _isUserFollowing(userId) {
+    let following;
+    
+    await client.get('/friendships/lookup', {
+        "screen_name": userId
+    }).then((result) => {
+        if ((result._headers.status = '200 OK') && (result[0].connections == 'following')) {
+            following = true
+        } else {
+            following = false
+        }})
+    .catch((err) => console.log(err))
+
+    return following
+};
+
 // Direct Message 
 async function dm(userId, content, target_screen_name = null) {
     let status;
